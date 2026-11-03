@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Home Game</title>
+<meta name="theme-color" content="#F1F4EE" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1713" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Home Game">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one narrow column. A felt-green pot band on top, a two-way switch (buy-ins / cash out), then ledger rows on plain panels. */
+:root{
+  --bg:#F1F4EE; --surface:#FFFFFF; --ink:#15221B; --muted:#5B6A61; --line:#DDE3DB; --field:#F5F7F3;
+  --band:#1C4A38; --band-ink:#EEF5EF; --band-dim:#A7C3B3; --band-line:rgba(255,255,255,.18);
+  --accent:#1C4A38; --on-accent:#FFFFFF; --link:#1C4A38; --ring:#2B7A59;
+  --pos:#17703F; --neg:#AE3A2D; --ok-bg:#DDEFE3; --warn:#85570A; --warn-bg:#FBF0D6;
+  --f-display:'Bricolage Grotesque','Avenir Next',system-ui,sans-serif;
+  --f-body:'Instrument Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-mono:'DM Mono',ui-monospace,'SF Mono',Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1713; --surface:#16231C; --ink:#E6EEE8; --muted:#93A59A; --line:#263830; --field:#1B2B23;
+    --band:#1B3A2C; --band-ink:#EAF3EC; --band-dim:#97B8A5; --band-line:rgba(255,255,255,.14);
+    --accent:#58B88A; --on-accent:#0B1812; --link:#6CC79A; --ring:#6CC79A;
+    --pos:#5FCB93; --neg:#F0897A; --ok-bg:#17392A; --warn:#E9BE5C; --warn-bg:#3A2E10;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1713; --surface:#16231C; --ink:#E6EEE8; --muted:#93A59A; --line:#263830; --field:#1B2B23;
+  --band:#1B3A2C; --band-ink:#EAF3EC; --band-dim:#97B8A5; --band-line:rgba(255,255,255,.14);
+  --accent:#58B88A; --on-accent:#0B1812; --link:#6CC79A; --ring:#6CC79A;
+  --pos:#5FCB93; --neg:#F0897A; --ok-bg:#17392A; --warn:#E9BE5C; --warn-bg:#3A2E10;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{color-scheme:light}
+:root[data-theme="dark"]{color-scheme:dark}
+html{padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;min-height:100vh;
+  background:var(--bg); color:var(--ink); font:16px/1.4 var(--f-body);
+  padding-block:16px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  -webkit-text-size-adjust:100%;
+}
+main{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+button{font-family:inherit;cursor:pointer}
+input,select{font:inherit;color:var(--ink)}
+:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+h1,h2,p,dl,dd,ul{margin:0}
+ul{padding:0;list-style:none}
+
+.band{background:var(--band);color:var(--band-ink);border-radius:20px;padding:18px 18px 16px;display:flex;flex-direction:column;gap:2px}
+.band-top{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--band-dim);font-size:13px}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase}
+.pot-label{margin-top:10px;font-size:13px;color:var(--band-dim)}
+.pot{font:700 44px/1.05 var(--f-display);letter-spacing:-.02em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--band-line)}
+.facts dt{font-size:12px;color:var(--band-dim)}
+.facts dd{font:500 18px var(--f-mono);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+
+.tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:4px;background:var(--line);border-radius:12px}
+.tabs button{height:40px;border:0;border-radius:9px;background:transparent;color:var(--muted);font:600 15px var(--f-body)}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+
+.stack{display:flex;flex-direction:column;gap:16px}
+.group{display:flex;flex-direction:column;gap:8px}
+.sect{display:flex;justify-content:space-between;gap:8px;padding-inline:4px;font:600 12px var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.sub{padding-inline:4px;font-size:14px;color:var(--muted)}
+.panel{background:var(--surface);border-radius:14px;padding:4px 16px}
+
+.setting{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 12px;padding:12px 16px}
+.setting label{font-weight:600}
+.amt-group{display:flex;align-items:center;gap:8px}
+.amt-group select{height:44px;border:1px solid var(--line);border-radius:10px;background:var(--field);padding:0 8px;font-size:16px}
+.stepper{display:inline-flex;align-items:center;gap:4px;padding:3px;background:var(--field);border-radius:999px}
+.stepper button{width:44px;height:44px;border:0;border-radius:50%;background:var(--surface);color:var(--ink);font:500 22px/1 var(--f-body);box-shadow:0 0 0 1px var(--line)}
+.stepper .n{min-width:34px;text-align:center;font:500 18px var(--f-mono)}
+.stepper input{width:84px;height:44px;border:0;background:transparent;text-align:center;font:500 18px var(--f-mono);font-variant-numeric:tabular-nums}
+
+.row{padding:12px 0;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:2px}
+.row:first-child{border-top:0}
+.row-main{display:flex;align-items:center;gap:6px}
+.name{flex:1;min-width:0;height:44px;border:0;border-radius:8px;background:transparent;font:600 17px var(--f-body);padding:0}
+.name::placeholder{color:var(--muted);font-weight:400}
+.x{width:44px;height:44px;border:0;background:transparent;color:var(--muted);font-size:24px;line-height:1;border-radius:50%}
+.row-sub{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.cost{font:400 15px var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+
+.cash{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center}
+.who{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pname{font-weight:600;font-size:17px;overflow-wrap:anywhere}
+.in{font-size:13px;color:var(--muted)}
+.out{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.field{display:flex;align-items:center;gap:6px;width:136px;height:44px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:var(--field);color:var(--muted)}
+.field:focus-within{outline:2px solid var(--ring);outline-offset:1px}
+.field input{flex:1;min-width:0;width:100%;border:0;outline:none;background:transparent;text-align:right;font:500 18px var(--f-mono);font-variant-numeric:tabular-nums}
+.net{font:500 14px var(--f-mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+.net.pos{color:var(--pos)}
+.net.neg{color:var(--neg)}
+
+.add{display:flex;gap:8px;padding:12px 0;border-top:1px solid var(--line)}
+.add input{flex:1;min-width:0;height:44px;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:var(--field);font-size:16px}
+.primary{height:44px;padding:0 20px;border:0;border-radius:10px;background:var(--accent);color:var(--on-accent);font:600 15px var(--f-body)}
+.ghost{width:100%;height:44px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--muted);font:600 14px var(--f-body)}
+.link{padding:8px 0;border:0;background:none;color:var(--link);font:600 14px var(--f-body);text-decoration:underline;text-underline-offset:3px;text-align:left}
+
+.empty{padding:18px 0 8px;color:var(--muted);display:flex;flex-direction:column;gap:2px}
+.note{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 12px 6px 14px;border-radius:12px;background:var(--warn-bg);color:var(--warn);font-size:14px}
+
+.line{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.line:first-child{border-top:0}
+.line b{font:500 16px var(--f-mono);font-variant-numeric:tabular-nums}
+.status{margin:2px 0 12px;padding:10px 12px;border-radius:10px;font-size:14px;font-weight:600}
+.status.ok{background:var(--ok-bg);color:var(--pos)}
+.status.warn{background:var(--warn-bg);color:var(--warn)}
+.fillrow{margin-top:-6px;margin-bottom:6px}
+
+.settle li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.settle li:first-child{border-top:0}
+.settle b{font-weight:600}
+.settle .amt{font:500 16px var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.hint{padding:14px 0;color:var(--muted);font-size:14px}
+
+.toast{position:fixed;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));max-width:488px;margin-inline:auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border-radius:12px;background:var(--ink);color:var(--bg);font-size:14px}
+.toast button{border:0;background:none;color:inherit;font:700 14px var(--f-body);text-decoration:underline;padding:8px 4px}
+
+.past{border-top:1px solid var(--line)}
+.past:first-child{border-top:0}
+.past summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:60px;padding:10px 0;list-style:none;cursor:pointer}
+.past summary::-webkit-details-marker{display:none}
+.sum-l{display:flex;flex-direction:column;min-width:0}
+.sum-l b{font-weight:600}
+.sum-l span{font-size:13px;color:var(--muted)}
+.sum-r{display:flex;align-items:center;gap:10px;font:500 16px var(--f-mono);font-variant-numeric:tabular-nums}
+.sum-r::after{content:"›";font:400 24px/1 var(--f-body);color:var(--muted)}
+.past[open] .sum-r::after{transform:rotate(90deg)}
+.prow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.pfoot{padding:2px 0 8px;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.restore{width:100%;border:1px solid var(--line);border-radius:10px;background:var(--field);padding:10px;font:16px/1.3 var(--f-mono);color:var(--ink);resize:vertical}
+
+@media (prefers-reduced-motion:no-preference){
+  button{transition:transform .08s ease}
+  button:active{transform:scale(.97)}
+}
+</style>
+</head>
+<body>
+<main id="app">
+  <div id="hdr"></div>
+  <nav id="tabs" class="tabs" role="tablist" aria-label="Game stage"></nav>
+  <div id="panel" class="stack"></div>
+</main>
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script>
+(function(){
+  var KEY = 'home-game-tracker-v1';
+  var CURRENCIES = ['₹','$','€','£'];
+  var SYNC = {saved:'Saved', saving:'Saving…', local:'Saved on this device'};
+
+  function uid(){ return Math.random().toString(36).slice(2,9); }
+  function round2(n){ return Math.round(n*100)/100; }
+  function sum(a){ return a.reduce(function(t,x){ return t+x; },0); }
+  function esc(s){ return String(s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function parse(v){
+    var s = String(v==null?'':v).replace(/[,\s]/g,'');
+    if(s==='' || isNaN(Number(s))) return null;
+    return Number(s);
+  }
+
+  function fresh(){ return {cur:'₹', buyIn:500, players:[], sample:false, history:[], updatedAt:0}; }
+  function migrate(s){
+    var o = Object.assign(fresh(), s || {});
+    o.players = (Array.isArray(o.players)?o.players:[]).map(function(p){
+      return {
+        id: String(p.id || uid()),
+        name: String(p.name || ''),
+        buyIns: Math.max(1, Math.floor(+p.buyIns || 1)),
+        stack: p.stack==null ? '' : String(p.stack)
+      };
+    });
+    o.buyIn = isFinite(+o.buyIn) ? +o.buyIn : 500;
+    o.cur = CURRENCIES.indexOf(o.cur) >= 0 ? o.cur : '₹';
+    o.history = (Array.isArray(o.history)?o.history:[]).map(function(g){
+      return {
+        id: String(g.id || uid()),
+        at: +g.at || 0,
+        cur: CURRENCIES.indexOf(g.cur) >= 0 ? g.cur : '₹',
+        buyIn: +g.buyIn || 0,
+        players: (Array.isArray(g.players)?g.players:[]).map(function(p){
+          return {name:String(p.name||''), buyIns:Math.max(1,Math.floor(+p.buyIns||1)), stack:(p.stack===null||p.stack===undefined)?null:+p.stack};
+        })
+      };
+    }).slice(0,200);
+    o.updatedAt = +o.updatedAt || 0;
+    o.sample = !!o.sample;
+    return o;
+  }
+  function loadLocal(){
+    try { var raw = localStorage.getItem(KEY); if(raw) return migrate(JSON.parse(raw)); } catch(e){}
+    return fresh();
+  }
+
+  var state = loadLocal();
+  var view = 'game';
+  var syncState = 'local';
+  var armed = false, armTimer = null;
+
+  /* ---------- formatting ---------- */
+  function money(n,c){
+    c = c || state.cur;
+    var f = new Intl.NumberFormat(c==='₹' ? 'en-IN' : 'en-US', {maximumFractionDigits:2});
+    return (n<0 ? '−' : '') + c + f.format(Math.abs(n));
+  }
+  function nameOf(p,i){ return p.name.trim() || ('Player ' + (i+1)); }
+  function stepFor(v){ return v>=1000 ? 100 : v>=200 ? 50 : v>=50 ? 10 : 5; }
+
+  /* ---------- numbers ---------- */
+  function calc(){
+    var ps = state.players;
+    var buyIns = sum(ps.map(function(p){ return p.buyIns; }));
+    var pot = round2(buyIns * state.buyIn);
+    var stacks = 0, blanks = [];
+    ps.forEach(function(p){
+      var s = parse(p.stack);
+      if(s===null) blanks.push(p); else stacks += s;
+    });
+    stacks = round2(stacks);
+    return {buyIns:buyIns, pot:pot, stacks:stacks, diff:round2(pot-stacks), blanks:blanks, complete: ps.length>0 && blanks.length===0};
+  }
+  function netOf(p){
+    var s = parse(p.stack);
+    if(s===null) return {text:'—', cls:'none'};
+    var net = round2(s - p.buyIns*state.buyIn);
+    if(net > 0.004) return {text:'+' + money(net), cls:'pos'};
+    if(net < -0.004) return {text:money(net), cls:'neg'};
+    return {text:'Even', cls:'even'};
+  }
+  function settle(){
+    var cred = [], debt = [];
+    state.players.forEach(function(p,i){
+      var s = parse(p.stack); if(s===null) return;
+      var net = round2(s - p.buyIns*state.buyIn);
+      if(net > 0.004) cred.push({name:nameOf(p,i), amt:net});
+      else if(net < -0.004) debt.push({name:nameOf(p,i), amt:-net});
+    });
+    cred.sort(function(a,b){ return b.amt-a.amt; });
+    debt.sort(function(a,b){ return b.amt-a.amt; });
+    var out = [], i = 0, j = 0;
+    while(i<debt.length && j<cred.length){
+      var a = Math.min(debt[i].amt, cred[j].amt);
+      out.push({from:debt[i].name, to:cred[j].name, amt:round2(a)});
+      debt[i].amt = round2(debt[i].amt - a);
+      cred[j].amt = round2(cred[j].amt - a);
+      if(debt[i].amt <= 0.004) i++;
+      if(cred[j].amt <= 0.004) j++;
+    }
+    return out;
+  }
+
+  /* ---------- saving ---------- */
+  var dbDoc = null, saveTimer = null, saving = false, dirty = false;
+  function setSync(s){
+    syncState = s;
+    var el = document.getElementById('sync');
+    if(el) el.textContent = SYNC[s];
+  }
+  function touch(){
+    state.updatedAt = Date.now();
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){}
+    if(!dbDoc){ setSync('local'); return; }
+    dirty = true; setSync('saving');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flush, 600);
+  }
+  async function flush(){
+    if(!dbDoc || saving) return;
+    saving = true;
+    try{
+      while(dirty){
+        dirty = false;
+        var snap = JSON.parse(JSON.stringify(state));
+        await dbDoc.set({state:snap, updatedAt:snap.updatedAt});
+      }
+      setSync('saved');
+    }catch(e){
+      setSync('local');
+    }finally{
+      saving = false;
+    }
+  }
+  /* ---------- views ---------- */
+  function headerHTML(){
+    var c = calc();
+    return '<div class="band">' +
+      '<div class="band-top"><h1 class="eyebrow">Home game</h1><span id="sync">' + SYNC[syncState] + '</span></div>' +
+      '<div class="pot-label">Total pot</div>' +
+      '<div class="pot">' + money(c.pot) + '</div>' +
+      '<dl class="facts">' +
+        '<div><dt>Players</dt><dd>' + state.players.length + '</dd></div>' +
+        '<div><dt>Buy-ins</dt><dd>' + c.buyIns + '</dd></div>' +
+        '<div><dt>Buy-in</dt><dd>' + money(state.buyIn) + '</dd></div>' +
+      '</dl></div>';
+  }
+  function tabsHTML(){
+    function t(id,label){
+      return '<button role="tab" data-act="tab" data-tab="' + id + '" aria-selected="' + (view===id) + '">' + label + '</button>';
+    }
+    return t('game','Buy-ins') + t('cash','Cash out') + t('history','History');
+  }
+  function newGameHTML(){
+    return '<button class="ghost" data-act="newgame" id="newgame">' + (armed ? 'Tap again to save this game and start a new one' : 'New game') + '</button>';
+  }
+  function noteHTML(){
+    return state.sample ? '<div class="note"><span>This is a sample game.</span><button class="link" data-act="clear-sample">Clear it</button></div>' : '';
+  }
+
+  function gameRow(p,i){
+    return '<li class="row" data-id="' + p.id + '">' +
+      '<div class="row-main">' +
+        '<input class="name" data-f="name" value="' + esc(p.name) + '" placeholder="Player ' + (i+1) + '" aria-label="Player name" autocomplete="off">' +
+        '<button class="x" data-act="remove" aria-label="Remove player">×</button>' +
+      '</div>' +
+      '<div class="row-sub">' +
+        '<span class="cost" data-cost>' + money(p.buyIns*state.buyIn) + ' in</span>' +
+        '<div class="stepper">' +
+          '<button data-act="dec" aria-label="Fewer buy-ins">−</button>' +
+          '<span class="n" data-n aria-live="polite">' + p.buyIns + '</span>' +
+          '<button data-act="inc" aria-label="More buy-ins">+</button>' +
+        '</div>' +
+      '</div></li>';
+  }
+  function gameHTML(){
+    var ps = state.players;
+    var rows = ps.length ? ps.map(gameRow).join('') :
+      '<li class="empty"><p>No players yet.</p><p>Add the first name below, or <button class="link" data-act="sample">load a sample game</button>.</p></li>';
+    var opts = CURRENCIES.map(function(c){ return '<option' + (c===state.cur?' selected':'') + '>' + c + '</option>'; }).join('');
+    return noteHTML() +
+      '<section class="panel setting">' +
+        '<label for="buyin">Buy-in</label>' +
+        '<div class="amt-group">' +
+          '<select id="cur" aria-label="Currency">' + opts + '</select>' +
+          '<div class="stepper">' +
+            '<button data-act="buyin-dec" aria-label="Lower buy-in">−</button>' +
+            '<input id="buyin" inputmode="decimal" value="' + state.buyIn + '" autocomplete="off">' +
+            '<button data-act="buyin-inc" aria-label="Raise buy-in">+</button>' +
+          '</div>' +
+        '</div>' +
+      '</section>' +
+      '<div class="group">' +
+        '<h2 class="sect"><span>Players</span><span id="pcount">' + ps.length + '</span></h2>' +
+        '<section class="panel">' +
+          '<ul id="rows">' + rows + '</ul>' +
+          '<form class="add" id="addform" autocomplete="off">' +
+            '<input id="newname" placeholder="Add a player" aria-label="New player name" enterkeyhint="done">' +
+            '<button class="primary" type="submit">Add</button>' +
+          '</form>' +
+        '</section>' +
+      '</div>' +
+      (ps.length ? newGameHTML() : '');
+  }
+
+  function cashRow(p,i){
+    var n = netOf(p);
+    return '<li class="row cash" data-id="' + p.id + '">' +
+      '<div class="who"><span class="pname">' + esc(nameOf(p,i)) + '</span><span class="in" data-in></span></div>' +
+      '<div class="out">' +
+        '<div class="field"><span>' + esc(state.cur) + '</span>' +
+          '<input data-f="stack" inputmode="decimal" placeholder="0" value="' + esc(p.stack) + '" aria-label="Final stack for ' + esc(nameOf(p,i)) + '" autocomplete="off"></div>' +
+        '<span class="net ' + n.cls + '" data-net>' + n.text + '</span>' +
+      '</div></li>';
+  }
+  function totalsHTML(){
+    var c = calc(), ps = state.players, status = '', fill = '';
+    if(c.blanks.length){
+      status = '<div class="status warn">' + c.blanks.length + (c.blanks.length===1 ? ' stack' : ' stacks') + ' still to enter</div>';
+      if(c.blanks.length===1 && c.diff>=0){
+        var b = c.blanks[0], bi = ps.indexOf(b);
+        fill = '<div class="fillrow"><button class="link" data-act="fill" data-id="' + b.id + '">Fill ' + esc(nameOf(b,bi)) + ' with ' + money(c.diff) + '</button></div>';
+      }
+    } else if(Math.abs(c.diff) < 0.005){
+      status = '<div class="status ok">Balanced. Stacks match the pot.</div>';
+    } else if(c.diff > 0){
+      status = '<div class="status warn">Stacks are ' + money(c.diff) + ' short of the pot</div>';
+    } else {
+      status = '<div class="status warn">Stacks are ' + money(-c.diff) + ' over the pot</div>';
+    }
+    return '<div class="line"><span>Pot</span><b>' + money(c.pot) + '</b></div>' +
+           '<div class="line"><span>Final stacks</span><b>' + money(c.stacks) + '</b></div>' +
+           status + fill;
+  }
+  function settleHTML(){
+    var c = calc();
+    if(!c.complete || Math.abs(c.diff) >= 0.005){
+      return '<p class="hint">Enter every final stack and match the pot to see who pays whom.</p>';
+    }
+    var t = settle();
+    if(!t.length) return '<p class="hint">Everyone is even. Nobody pays.</p>';
+    return '<ul class="settle">' + t.map(function(x){
+      return '<li><span><b>' + esc(x.from) + '</b> pays <b>' + esc(x.to) + '</b></span><span class="amt">' + money(x.amt) + '</span></li>';
+    }).join('') + '</ul>';
+  }
+  function cashHTML(){
+    var ps = state.players;
+    if(!ps.length){
+      return '<section class="panel"><div class="empty"><p>No players yet.</p><p>Add them on the <button class="link" data-act="tab" data-tab="game">Buy-ins</button> tab first.</p></div></section>';
+    }
+    return '<div class="group">' +
+        '<h2 class="sect"><span>Final stacks</span></h2>' +
+        '<p class="sub">Enter what each player is cashing out with.</p>' +
+        '<section class="panel"><ul id="rows">' + ps.map(cashRow).join('') + '</ul></section>' +
+      '</div>' +
+      '<section class="panel" id="totals">' + totalsHTML() + '</section>' +
+      '<div class="group"><h2 class="sect"><span>Settle up</span></h2>' +
+        '<section class="panel" id="settle">' + settleHTML() + '</section></div>' +
+      newGameHTML();
+  }
+
+  function archiveGame(){
+    if(!state.players.length || state.sample) return false;
+    state.history.unshift({
+      id: uid(), at: Date.now(), cur: state.cur, buyIn: state.buyIn,
+      players: state.players.map(function(p,i){ return {name:nameOf(p,i), buyIns:p.buyIns, stack:parse(p.stack)}; })
+    });
+    state.history = state.history.slice(0,200);
+    return true;
+  }
+  function fmtDate(at){
+    try { return new Date(at).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'}); }
+    catch(e){ return ''; }
+  }
+  function pastGameHTML(g){
+    var buyIns = sum(g.players.map(function(p){ return p.buyIns; }));
+    var pot = round2(buyIns * g.buyIn);
+    var rows = g.players.map(function(p){
+      var inn = round2(p.buyIns * g.buyIn), t, cls;
+      if(p.stack===null){ t = '—'; cls = 'none'; }
+      else {
+        var net = round2(p.stack - inn);
+        if(net > 0.004){ t = '+' + money(net,g.cur); cls = 'pos'; }
+        else if(net < -0.004){ t = money(net,g.cur); cls = 'neg'; }
+        else { t = 'Even'; cls = 'even'; }
+      }
+      return '<li class="prow"><div class="who"><span class="pname">' + esc(p.name) + '</span>' +
+        '<span class="in">In ' + money(inn,g.cur) + (p.stack===null ? '' : ' · Out ' + money(p.stack,g.cur)) + '</span></div>' +
+        '<span class="net ' + cls + '">' + t + '</span></li>';
+    }).join('');
+    return '<details class="past">' +
+      '<summary><div class="sum-l"><b>' + esc(fmtDate(g.at)) + '</b><span>' + g.players.length + (g.players.length===1?' player':' players') + ' · ' + buyIns + (buyIns===1?' buy-in':' buy-ins') + '</span></div>' +
+      '<span class="sum-r">' + money(pot,g.cur) + '</span></summary>' +
+      '<ul>' + rows + '</ul>' +
+      '<div class="pfoot"><button class="link" data-act="delete-game" data-gid="' + g.id + '">Delete this game</button></div>' +
+      '</details>';
+  }
+  function backupHTML(){
+    return '<section class="panel"><details class="past">' +
+      '<summary><div class="sum-l"><b>Backup</b><span>Copy your data, or restore it</span></div><span class="sum-r"></span></summary>' +
+      '<div class="pfoot">' +
+        '<button class="link" data-act="backup-copy">Copy backup</button>' +
+        '<textarea id="restore" class="restore" rows="3" placeholder="Paste a backup here to restore" aria-label="Backup text"></textarea>' +
+        '<button class="link" data-act="restore">Restore from pasted backup</button>' +
+      '</div></details></section>';
+  }
+  function historyHTML(){
+    var list;
+    if(!state.history.length){
+      list = '<section class="panel"><div class="empty"><p>No past games yet.</p><p>When you start a new game, the one you just played is saved here.</p></div></section>';
+    } else {
+      list = '<div class="group"><h2 class="sect"><span>Past games</span><span>' + state.history.length + '</span></h2>' +
+        '<section class="panel">' + state.history.map(pastGameHTML).join('') + '</section></div>';
+    }
+    return list + backupHTML();
+  }
+
+  /* ---------- painting ---------- */
+  var hdr = document.getElementById('hdr');
+  var tabs = document.getElementById('tabs');
+  var panel = document.getElementById('panel');
+  var app = document.getElementById('app');
+  var toastEl = document.getElementById('toast');
+
+  function render(){
+    hdr.innerHTML = headerHTML();
+    tabs.innerHTML = tabsHTML();
+    panel.innerHTML = view==='game' ? gameHTML() : view==='cash' ? cashHTML() : historyHTML();
+    state.players.forEach(function(){});
+    document.querySelectorAll('#rows [data-id]').forEach(paintRow);
+  }
+  function paintRow(li){
+    var i = -1, p = null;
+    state.players.forEach(function(x,k){ if(x.id===li.dataset.id){ p = x; i = k; } });
+    if(!p) return;
+    var c = li.querySelector('[data-cost]'); if(c) c.textContent = money(p.buyIns*state.buyIn) + ' in';
+    var n = li.querySelector('[data-n]'); if(n) n.textContent = p.buyIns;
+    var inn = li.querySelector('[data-in]');
+    if(inn) inn.textContent = 'In ' + money(p.buyIns*state.buyIn) + ' · ' + p.buyIns + (p.buyIns>1 ? ' buy-ins' : ' buy-in');
+    var net = li.querySelector('[data-net]');
+    if(net){ var r = netOf(p); net.textContent = r.text; net.className = 'net ' + r.cls; }
+  }
+  function refresh(){
+    hdr.innerHTML = headerHTML();
+    var pc = document.getElementById('pcount'); if(pc) pc.textContent = state.players.length;
+    document.querySelectorAll('#rows [data-id]').forEach(paintRow);
+    var t = document.getElementById('totals'); if(t) t.innerHTML = totalsHTML();
+    var s = document.getElementById('settle'); if(s) s.innerHTML = settleHTML();
+  }
+
+  /* ---------- toast ---------- */
+  var toastTimer = null, undoFn = null;
+  function toast(msg, undo){
+    undoFn = undo || null;
+    toastEl.innerHTML = '<span>' + esc(msg) + '</span>' + (undo ? '<button data-undo>Undo</button>' : '');
+    toastEl.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toastEl.hidden = true; undoFn = null; }, 5000);
+  }
+  toastEl.addEventListener('click', function(e){
+    if(e.target.closest('[data-undo]') && undoFn){ var f = undoFn; undoFn = null; toastEl.hidden = true; f(); }
+  });
+
+  /* ---------- actions ---------- */
+  function addPlayer(){
+    var inp = document.getElementById('newname');
+    var name = inp ? inp.value.trim() : '';
+    if(!name) name = 'Player ' + (state.players.length + 1);
+    state.players.push({id:uid(), name:name, buyIns:1, stack:''});
+    touch(); render();
+    var f = document.getElementById('newname'); if(f) f.focus();
+  }
+  function setBuyIn(v){
+    state.buyIn = Math.max(0, round2(v));
+    var inp = document.getElementById('buyin'); if(inp) inp.value = state.buyIn;
+    touch(); refresh();
+  }
+
+  app.addEventListener('click', function(e){
+    var b = e.target.closest('[data-act]'); if(!b) return;
+    var act = b.dataset.act;
+    var li = b.closest('[data-id]');
+    var id = b.dataset.id || (li && li.dataset.id);
+    var idx = -1;
+    state.players.forEach(function(x,k){ if(x.id===id) idx = k; });
+    var p = idx>=0 ? state.players[idx] : null;
+
+    if(act==='tab'){ view = b.dataset.tab; render(); }
+    else if(act==='inc' && p){ p.buyIns += 1; touch(); refresh(); }
+    else if(act==='dec' && p){ if(p.buyIns>1){ p.buyIns -= 1; touch(); refresh(); } }
+    else if(act==='remove' && p){
+      var removed = state.players.splice(idx,1)[0], at = idx, label = nameOf(removed,at);
+      touch(); render();
+      toast('Removed ' + label, function(){ state.players.splice(at,0,removed); touch(); render(); });
+    }
+    else if(act==='buyin-inc'){ setBuyIn(state.buyIn + stepFor(state.buyIn)); }
+    else if(act==='buyin-dec'){ setBuyIn(state.buyIn - stepFor(state.buyIn - 1)); }
+    else if(act==='fill' && p){
+      var c = calc(); p.stack = String(c.diff); touch();
+      var el = document.querySelector('[data-id="' + p.id + '"] [data-f="stack"]'); if(el) el.value = p.stack;
+      refresh();
+    }
+    else if(act==='sample'){
+      state.cur = state.cur; state.buyIn = 500; state.sample = true;
+      state.players = [
+        {id:uid(), name:'Arjun', buyIns:2, stack:'1400'},
+        {id:uid(), name:'Meera', buyIns:1, stack:'300'},
+        {id:uid(), name:'Kabir', buyIns:1, stack:'500'},
+        {id:uid(), name:'Isha', buyIns:1, stack:'300'}
+      ];
+      touch(); render();
+    }
+    else if(act==='backup-copy'){
+      var text = JSON.stringify(state);
+      var ta = document.getElementById('restore');
+      var fallback = function(){ if(ta){ ta.value = text; ta.focus(); ta.select(); } toast('Select the text above and copy it'); };
+      try { navigator.clipboard.writeText(text).then(function(){ toast('Backup copied'); }, fallback); }
+      catch(err){ fallback(); }
+    }
+    else if(act==='restore'){
+      var box = document.getElementById('restore');
+      try {
+        var obj = JSON.parse(box ? box.value : '');
+        if(!obj || typeof obj !== 'object' || (!Array.isArray(obj.players) && !Array.isArray(obj.history))) throw new Error('bad');
+        state = migrate(obj); touch(); render(); toast('Backup restored');
+      } catch(err){ toast('That text is not a valid backup'); }
+    }
+    else if(act==='clear-sample'){ state.players = []; state.sample = false; touch(); render(); }
+    else if(act==='delete-game'){
+      var gi = -1;
+      state.history.forEach(function(g,k){ if(g.id===b.dataset.gid) gi = k; });
+      if(gi>=0){
+        var gone = state.history.splice(gi,1)[0];
+        touch(); render();
+        toast('Game deleted', function(){ state.history.splice(gi,0,gone); touch(); render(); });
+      }
+    }
+    else if(act==='newgame'){
+      if(!armed){
+        armed = true; b.textContent = 'Tap again to save this game and start a new one';
+        clearTimeout(armTimer);
+        armTimer = setTimeout(function(){ armed = false; var nb = document.getElementById('newgame'); if(nb) nb.textContent = 'New game'; }, 3500);
+      } else {
+        armed = false; clearTimeout(armTimer);
+        var saved = archiveGame();
+        state.players.forEach(function(x){ x.buyIns = 1; x.stack = ''; });
+        state.sample = false; view = 'game';
+        touch(); render();
+        toast(saved ? 'Game saved to History. New game started.' : 'New game started. Names kept.');
+      }
+    }
+  });
+
+  app.addEventListener('input', function(e){
+    var t = e.target;
+    if(t.id==='buyin'){
+      var v = parse(t.value);
+      if(v!==null && v>=0){ state.buyIn = v; touch(); refresh(); }
+      return;
+    }
+    var li = t.closest('[data-id]'); if(!li) return;
+    var p = null;
+    state.players.forEach(function(x){ if(x.id===li.dataset.id) p = x; });
+    if(!p) return;
+    if(t.dataset.f==='name'){ p.name = t.value; touch(); }
+    else if(t.dataset.f==='stack'){ p.stack = t.value; touch(); refresh(); }
+  });
+  app.addEventListener('change', function(e){
+    if(e.target.id==='cur'){ state.cur = e.target.value; touch(); render(); }
+  });
+  app.addEventListener('focusout', function(e){
+    if(e.target.id==='buyin') e.target.value = state.buyIn;
+  });
+  app.addEventListener('submit', function(e){
+    e.preventDefault();
+    if(e.target.id==='addform') addPlayer();
+  });
+
+  render();
+  if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(function(){}); }
+})();
+</script>
+</body>
+</html>
